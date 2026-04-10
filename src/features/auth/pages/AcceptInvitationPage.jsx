@@ -31,6 +31,7 @@ export default function AcceptInvitationPage() {
   const [searchParams] = useSearchParams();
 
   const queryToken = searchParams.get('token');
+  const confirmationUrl = searchParams.get('confirmation_url');
 
   const hashParams = new URLSearchParams(
     window.location.hash.startsWith('#')
@@ -104,7 +105,8 @@ export default function AcceptInvitationPage() {
         setError('');
 
         if (!invitationToken) {
-          throw new Error('Lien d’invitation invalide ou token introuvable.');
+          setInvitation(null);
+          return;
         }
 
         const data = await getInvitationByToken(invitationToken);
@@ -239,8 +241,7 @@ export default function AcceptInvitationPage() {
             role: invitation.role,
             statut: 'actif',
             date_activation: new Date().toISOString(),
-            date_invitation:
-              invitation.created_at || new Date().toISOString(),
+            date_invitation: invitation.created_at || new Date().toISOString(),
           },
           { onConflict: 'entreprise_id,user_id' }
         );
@@ -268,14 +269,47 @@ export default function AcceptInvitationPage() {
     }
   }
 
+  if (confirmationUrl && !session?.user) {
+    return (
+      <section className="auth-page-shell">
+        <div className="auth-card">
+          <div className="auth-badge">Invitation</div>
+          <h1>Invitation entreprise</h1>
+          <p>
+            Cliquez sur le bouton ci-dessous pour continuer l’activation de votre compte.
+          </p>
+
+          <div className="auth-actions-stack">
+            <button
+              type="button"
+              className="primary-btn"
+              onClick={() => {
+                window.location.href = confirmationUrl;
+              }}
+            >
+              Continuer l’invitation
+            </button>
+
+            <button
+              type="button"
+              className="secondary-outline-btn"
+              onClick={handleBackToLogin}
+            >
+              Retour à la connexion
+            </button>
+          </div>
+        </div>
+      </section>
+    );
+  }
+
   if (hashError || hashErrorCode) {
     return (
       <section className="auth-page-shell">
         <div className="auth-card">
           <h1>Invitation entreprise</h1>
           <p className="error-text">
-            {hashErrorDescription ||
-              'Ce lien d’invitation est invalide ou expiré.'}
+            {hashErrorDescription || 'Ce lien d’invitation est invalide ou expiré.'}
           </p>
           <button
             type="button"
