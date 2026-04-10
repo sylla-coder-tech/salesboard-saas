@@ -1,10 +1,13 @@
 import { useEffect, useState } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useSearchParams } from 'react-router-dom';
 import { supabase } from '../../../lib/supabaseClient';
 import { signOutUser, updateUserPassword } from '../services/authService';
 
 export default function UpdatePasswordPage() {
   const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
+
+  const confirmationUrl = searchParams.get('confirmation_url');
 
   const [password, setPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
@@ -16,6 +19,8 @@ export default function UpdatePasswordPage() {
 
   useEffect(() => {
     let mounted = true;
+    let timeoutId;
+    let authSubscription = null;
 
     async function initRecoverySession() {
       try {
@@ -49,9 +54,7 @@ export default function UpdatePasswordPage() {
           return;
         }
 
-        const {
-          data: { subscription },
-        } = supabase.auth.onAuthStateChange((event, sessionAfterAuth) => {
+        const { data } = supabase.auth.onAuthStateChange((event, sessionAfterAuth) => {
           if (!mounted) return;
 
           if (
@@ -64,7 +67,9 @@ export default function UpdatePasswordPage() {
           }
         });
 
-        setTimeout(async () => {
+        authSubscription = data.subscription;
+
+        timeoutId = setTimeout(async () => {
           if (!mounted) return;
 
           const {
@@ -81,7 +86,11 @@ export default function UpdatePasswordPage() {
           }
 
           setPageLoading(false);
-          subscription.unsubscribe();
+
+          if (authSubscription) {
+            authSubscription.unsubscribe();
+            authSubscription = null;
+          }
         }, 1200);
       } catch (error) {
         if (!mounted) return;
@@ -96,6 +105,8 @@ export default function UpdatePasswordPage() {
 
     return () => {
       mounted = false;
+      if (timeoutId) clearTimeout(timeoutId);
+      if (authSubscription) authSubscription.unsubscribe();
     };
   }, []);
 
@@ -136,6 +147,52 @@ export default function UpdatePasswordPage() {
     } finally {
       setLoading(false);
     }
+  }
+
+  if (confirmationUrl && !hasRecoverySession && !pageLoading) {
+    return (
+      <div className="login-wrap">
+        <div className="login-shell">
+          <section className="login-hero">
+            <div className="login-hero-top">
+              <div className="login-eyebrow">Sécurisation du compte</div>
+              <h1>Réinitialisation du mot de passe</h1>
+              <p>
+                Cliquez sur le bouton ci-dessous pour continuer la réinitialisation
+                de votre mot de passe.
+              </p>
+            </div>
+          </section>
+
+          <section className="login-panel">
+            <div className="login-card">
+              <div className="login-header">
+                <div className="login-header-top">
+                  <span className="login-panel-label">Lien sécurisé</span>
+                </div>
+
+                <h2>Continuer</h2>
+
+                <p className="muted">
+                  Cette étape permet d’ouvrir correctement votre session de
+                  récupération avant le changement du mot de passe.
+                </p>
+              </div>
+
+              <button
+                className="primary-btn"
+                type="button"
+                onClick={() => {
+                  window.location.href = confirmationUrl;
+                }}
+              >
+                Continuer la réinitialisation
+              </button>
+            </div>
+          </section>
+        </div>
+      </div>
+    );
   }
 
   return (
