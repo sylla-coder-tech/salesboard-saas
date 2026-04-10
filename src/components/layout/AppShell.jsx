@@ -5,7 +5,7 @@ import { useAuthContextData } from '../../features/auth/services/useAuthContext'
 
 const menuItems = [
   {
-    label: 'Dashboard',
+    label: 'Tableau de bord',
     path: '/dashboard',
     roles: ['owner', 'admin', 'vendeur', 'comptable', 'lecteur'],
     isEnabled: () => true,
@@ -31,7 +31,7 @@ const menuItems = [
   {
     label: 'Clients',
     path: '/clients',
-    roles: ['owner', 'admin', 'vendeur'],
+    roles: ['owner', 'admin', 'vendeur', 'comptable'],
     isEnabled: () => true,
   },
   {
@@ -43,7 +43,7 @@ const menuItems = [
   {
     label: 'Crédits',
     path: '/credits',
-    roles: ['owner', 'admin', 'comptable'],
+    roles: ['owner', 'admin', 'vendeur', 'comptable'],
     isEnabled: (entreprise) => Boolean(entreprise?.credits_actifs),
   },
   {
@@ -58,7 +58,6 @@ const menuItems = [
     roles: ['owner', 'admin', 'comptable'],
     isEnabled: (entreprise) => Boolean(entreprise?.rapports_avances_actifs),
   },
-  
   {
     label: 'Équipe',
     path: '/equipe',
@@ -129,7 +128,9 @@ export default function AppShell() {
 
   return (
     <div className="app-shell">
-      {mobileMenuOpen && <div className="mobile-overlay" onClick={closeMobileMenu} />}
+      {mobileMenuOpen ? (
+        <div className="mobile-overlay" onClick={closeMobileMenu} />
+      ) : null}
 
       <aside className={`sidebar ${mobileMenuOpen ? 'sidebar-mobile-open' : ''}`}>
         <div className="brand-box">
@@ -173,7 +174,12 @@ export default function AppShell() {
 
       <div className="main-layout">
         <div className="mobile-topbar">
-          <button className="menu-toggle-btn" onClick={toggleMobileMenu} aria-label="Ouvrir le menu">
+          <button
+            className="menu-toggle-btn"
+            onClick={toggleMobileMenu}
+            aria-label="Ouvrir le menu"
+            type="button"
+          >
             ☰
           </button>
 
@@ -189,7 +195,7 @@ export default function AppShell() {
             <span>{loading ? '...' : entreprise?.nom || 'SalesBoard'}</span>
           </div>
 
-          <button className="ghost-topbar-btn" onClick={handleLogout}>
+          <button className="ghost-topbar-btn" onClick={handleLogout} type="button">
             Sortir
           </button>
         </div>
@@ -214,7 +220,7 @@ export default function AppShell() {
             </div>
           </div>
 
-          <button className="ghost-topbar-btn desktop-only" onClick={handleLogout}>
+          <button className="ghost-topbar-btn desktop-only" onClick={handleLogout} type="button">
             Déconnexion
           </button>
         </header>
