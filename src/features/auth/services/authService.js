@@ -56,36 +56,28 @@ export async function getInvitationByToken(token) {
     throw new Error("Token d'invitation introuvable.");
   }
 
-  const { data, error } = await supabase
-    .from('invitations_entreprise')
-    .select(
-      'id, email, role, statut, expire_at, entreprise_id, token, created_at'
-    )
-    .eq('token', cleanToken)
-    .order('created_at', { ascending: false })
-    .limit(1)
-    .maybeSingle();
+  const { data, error } = await supabase.functions.invoke(
+    'get-invitation-by-token',
+    {
+      body: { token: cleanToken },
+    }
+  );
 
-  if (error) throw error;
-  if (!data) {
+  if (error) {
+    throw new Error(
+      data?.message || error.message || "Impossible de charger l'invitation."
+    );
+  }
+
+  if (data?.error) {
+    throw new Error(data.message || data.error);
+  }
+
+  if (!data?.invitation) {
     throw new Error('Invitation introuvable.');
   }
 
-  return data;
-}
-
-export async function markInvitationAsAccepted(invitationId) {
-  const { data, error } = await supabase
-    .from('invitations_entreprise')
-    .update({
-      statut: 'acceptee',
-    })
-    .eq('id', invitationId)
-    .select()
-    .single();
-
-  if (error) throw error;
-  return data;
+  return data.invitation;
 }
 
 export function isInvitationExpired(expireAt) {
