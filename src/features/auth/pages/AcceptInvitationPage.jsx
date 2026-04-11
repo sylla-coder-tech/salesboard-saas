@@ -31,25 +31,16 @@ export default function AcceptInvitationPage() {
   const [searchParams] = useSearchParams();
 
   const queryToken = searchParams.get('token');
-  const confirmationUrl = searchParams.get('confirmation_url');
-
-  const hashParams = new URLSearchParams(
-    window.location.hash.startsWith('#')
-      ? window.location.hash.slice(1)
-      : window.location.hash
-  );
-
-  const hashError = hashParams.get('error');
-  const hashErrorCode = hashParams.get('error_code');
-  const hashErrorDescription = hashParams.get('error_description');
+  const tokenHash = searchParams.get('token_hash');
+  const type = searchParams.get('type') || 'invite';
 
   const [loading, setLoading] = useState(true);
+  const [verifying, setVerifying] = useState(false);
   const [session, setSession] = useState(null);
   const [invitation, setInvitation] = useState(null);
   const [error, setError] = useState('');
   const [successMsg, setSuccessMsg] = useState('');
   const [submitting, setSubmitting] = useState(false);
-  const [continuing, setContinuing] = useState(false);
 
   const [form, setForm] = useState({
     password: '',
@@ -122,21 +113,12 @@ export default function AcceptInvitationPage() {
       }
     }
 
-    if (hashError || hashErrorCode) {
-      setLoading(false);
-      return;
-    }
-
-    if (invitationToken) {
-      loadInvitation();
-    } else {
-      setLoading(false);
-    }
+    loadInvitation();
 
     return () => {
       mounted = false;
     };
-  }, [invitationToken, hashError, hashErrorCode]);
+  }, [invitationToken]);
 
   const expired = useMemo(() => {
     return isInvitationExpired(invitation?.expire_at);
@@ -167,17 +149,25 @@ export default function AcceptInvitationPage() {
 
   async function handleContinueInvitation() {
     try {
-      setContinuing(true);
+      setVerifying(true);
       setError('');
 
-      if (!confirmationUrl) {
-        throw new Error("Lien de confirmation introuvable.");
+      if (!tokenHash) {
+        throw new Error('Token de confirmation introuvable.');
       }
 
-      window.location.href = confirmationUrl;
+      const { data, error: verifyError } = await supabase.auth.verifyOtp({
+        token_hash: tokenHash,
+        type,
+      });
+
+      if (verifyError) throw verifyError;
+
+      setSession(data?.session || null);
     } catch (err) {
       setError(err.message || "Impossible de continuer l'invitation.");
-      setContinuing(false);
+    } finally {
+      setVerifying(false);
     }
   }
 
@@ -189,14 +179,14 @@ export default function AcceptInvitationPage() {
 
     try {
       const {
-        data: { session: freshSession },
-        error: sessionError,
-      } = await supabase.auth.getSession();
+        data: { user },
+        error: userError,
+      } = await supabase.auth.getUser();
 
-      if (sessionError) throw sessionError;
-      if (!freshSession?.user) {
+      if (userError) throw userError;
+      if (!user) {
         throw new Error(
-          "Session utilisateur introuvable. Cliquez d'abord sur « Continuer l’invitation » depuis le lien reçu par email."
+          "Session utilisateur introuvable. Cliquez d’abord sur « Continuer l’invitation »."
         );
       }
 
@@ -213,12 +203,10 @@ export default function AcceptInvitationPage() {
       }
 
       const invitedEmail = String(invitation.email || '').trim().toLowerCase();
-      const currentEmail = String(freshSession.user.email || '').trim().toLowerCase();
+      const currentEmail = String(user.email || '').trim().toLowerCase();
 
       if (!currentEmail || currentEmail !== invitedEmail) {
-        throw new Error(
-          "Le compte connecté ne correspond pas à l’email invité."
-        );
+        throw new Error("Le compte connecté ne correspond pas à l’email invité.");
       }
 
       if (!form.password || form.password.length < 6) {
@@ -236,15 +224,15 @@ export default function AcceptInvitationPage() {
       if (passwordError) throw passwordError;
 
       const displayName =
-        freshSession.user.user_metadata?.nom_complet ||
-        freshSession.user.user_metadata?.full_name ||
-        buildDisplayName(freshSession.user.email);
+        user.user_metadata?.nom_complet ||
+        user.user_metadata?.full_name ||
+        buildDisplayName(user.email);
 
       const { error: profileError } = await supabase
         .from('profils')
         .upsert(
           {
-            id: freshSession.user.id,
+            id: user.id,
             entreprise_id: invitation.entreprise_id,
             role: invitation.role,
             nom_complet: displayName,
@@ -260,7 +248,7 @@ export default function AcceptInvitationPage() {
         .upsert(
           {
             entreprise_id: invitation.entreprise_id,
-            user_id: freshSession.user.id,
+            user_id: user.id,
             role: invitation.role,
             statut: 'actif',
             date_invitation: invitation.created_at || new Date().toISOString(),
@@ -273,9 +261,7 @@ export default function AcceptInvitationPage() {
 
       const { error: invitationUpdateError } = await supabase
         .from('invitations_entreprise')
-        .update({
-          statut: 'acceptee',
-        })
+        .update({ statut: 'acceptee' })
         .eq('id', invitation.id);
 
       if (invitationUpdateError) throw invitationUpdateError;
@@ -290,26 +276,6 @@ export default function AcceptInvitationPage() {
     } finally {
       setSubmitting(false);
     }
-  }
-
-  if (hashError || hashErrorCode) {
-    return (
-      <section className="auth-page-shell">
-        <div className="auth-card">
-          <h1>Invitation entreprise</h1>
-          <p className="error-text">
-            {hashErrorDescription || 'Ce lien d’invitation est invalide ou expiré.'}
-          </p>
-          <button
-            type="button"
-            className="primary-btn"
-            onClick={handleBackToLogin}
-          >
-            Retour à la connexion
-          </button>
-        </div>
-      </section>
-    );
   }
 
   if (loading) {
@@ -329,11 +295,7 @@ export default function AcceptInvitationPage() {
         <div className="auth-card">
           <h1>Invitation entreprise</h1>
           <p className="error-text">{error}</p>
-          <button
-            type="button"
-            className="primary-btn"
-            onClick={handleBackToLogin}
-          >
+          <button type="button" className="primary-btn" onClick={handleBackToLogin}>
             Retour à la connexion
           </button>
         </div>
@@ -347,11 +309,7 @@ export default function AcceptInvitationPage() {
         <div className="auth-card">
           <h1>Invitation entreprise</h1>
           <p className="error-text">Invitation introuvable.</p>
-          <button
-            type="button"
-            className="primary-btn"
-            onClick={handleBackToLogin}
-          >
+          <button type="button" className="primary-btn" onClick={handleBackToLogin}>
             Retour à la connexion
           </button>
         </div>
@@ -364,15 +322,9 @@ export default function AcceptInvitationPage() {
       <section className="auth-page-shell">
         <div className="auth-card">
           <h1>Invitation expirée</h1>
-          <p>
-            Cette invitation pour <strong>cette entreprise</strong> a expiré.
-          </p>
+          <p>Cette invitation pour <strong>cette entreprise</strong> a expiré.</p>
           <p>Demandez une nouvelle invitation à l’administrateur.</p>
-          <button
-            type="button"
-            className="primary-btn"
-            onClick={handleBackToLogin}
-          >
+          <button type="button" className="primary-btn" onClick={handleBackToLogin}>
             Retour à la connexion
           </button>
         </div>
@@ -386,11 +338,7 @@ export default function AcceptInvitationPage() {
         <div className="auth-card">
           <h1>Invitation non disponible</h1>
           <p>Cette invitation a déjà été utilisée ou n’est plus active.</p>
-          <button
-            type="button"
-            className="primary-btn"
-            onClick={handleBackToLogin}
-          >
+          <button type="button" className="primary-btn" onClick={handleBackToLogin}>
             Retour à la connexion
           </button>
         </div>
@@ -431,8 +379,8 @@ export default function AcceptInvitationPage() {
         {!session?.user ? (
           <div className="auth-info-box">
             <p>
-              Cliquez d’abord sur le bouton ci-dessous pour que la session
-              d’invitation soit reconnue, puis définissez votre mot de passe.
+              Cliquez d’abord sur le bouton ci-dessous pour valider l’invitation,
+              puis définissez votre mot de passe.
             </p>
 
             {error ? <p className="error-text">{error}</p> : null}
@@ -442,9 +390,9 @@ export default function AcceptInvitationPage() {
                 type="button"
                 className="primary-btn"
                 onClick={handleContinueInvitation}
-                disabled={continuing || !confirmationUrl}
+                disabled={verifying || !tokenHash}
               >
-                {continuing ? 'Ouverture...' : 'Continuer l’invitation'}
+                {verifying ? 'Validation...' : 'Continuer l’invitation'}
               </button>
 
               <button
