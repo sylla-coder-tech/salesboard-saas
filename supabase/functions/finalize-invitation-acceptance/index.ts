@@ -93,10 +93,7 @@ Deno.serve(async (req) => {
       )
     }
 
-    if (
-      invitation.expire_at &&
-      new Date(invitation.expire_at).getTime() < Date.now()
-    ) {
+    if (invitation.expire_at && new Date(invitation.expire_at).getTime() < Date.now()) {
       return jsonResponse(
         {
           error: 'INVITATION_EXPIRED',
@@ -155,9 +152,7 @@ Deno.serve(async (req) => {
 
     const { error: invitationUpdateError } = await supabaseAdmin
       .from('invitations_entreprise')
-      .update({
-        statut: 'acceptee',
-      })
+      .update({ statut: 'acceptee' })
       .eq('id', invitation.id)
 
     if (invitationUpdateError) {

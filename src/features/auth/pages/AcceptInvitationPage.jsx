@@ -92,7 +92,6 @@ export default function AcceptInvitationPage() {
       try {
         setError('');
 
-        if (!session?.user) return;
         if (!invitationToken) return;
 
         const data = await getInvitationByToken(invitationToken);
@@ -110,7 +109,7 @@ export default function AcceptInvitationPage() {
     return () => {
       mounted = false;
     };
-  }, [invitationToken, session]);
+  }, [invitationToken]);
 
   const expired = useMemo(() => {
     return isInvitationExpired(invitation?.expire_at);
@@ -222,7 +221,9 @@ export default function AcceptInvitationPage() {
 
       if (finalizeError) {
         throw new Error(
-          finalizeData?.message || finalizeError.message || "Erreur lors de l'activation finale."
+          finalizeData?.message ||
+            finalizeError.message ||
+            "Erreur lors de l'activation finale."
         );
       }
 
