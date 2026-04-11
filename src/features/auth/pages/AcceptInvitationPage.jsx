@@ -61,6 +61,8 @@ export default function AcceptInvitationPage() {
       } catch (err) {
         if (!mounted) return;
         console.error('Erreur session invitation:', err);
+      } finally {
+        if (mounted) setLoading(false);
       }
     }
 
@@ -93,9 +95,9 @@ export default function AcceptInvitationPage() {
 
     async function loadInvitation() {
       try {
-        setLoading(true);
         setError('');
 
+        if (!session?.user) return;
         if (!invitationToken) {
           setInvitation(null);
           return;
@@ -108,8 +110,6 @@ export default function AcceptInvitationPage() {
       } catch (err) {
         if (!mounted) return;
         setError(err.message || 'Impossible de charger cette invitation.');
-      } finally {
-        if (mounted) setLoading(false);
       }
     }
 
@@ -118,7 +118,7 @@ export default function AcceptInvitationPage() {
     return () => {
       mounted = false;
     };
-  }, [invitationToken]);
+  }, [invitationToken, session]);
 
   const expired = useMemo(() => {
     return isInvitationExpired(invitation?.expire_at);
@@ -283,7 +283,43 @@ export default function AcceptInvitationPage() {
       <section className="auth-page-shell">
         <div className="auth-card">
           <h1>Invitation entreprise</h1>
-          <p>Chargement de l’invitation...</p>
+          <p>Chargement...</p>
+        </div>
+      </section>
+    );
+  }
+
+  if (!session?.user) {
+    return (
+      <section className="auth-page-shell">
+        <div className="auth-card">
+          <div className="auth-badge">Invitation</div>
+          <h1>Invitation entreprise</h1>
+          <p>
+            Cliquez sur le bouton ci-dessous pour valider l’invitation,
+            puis définir votre mot de passe.
+          </p>
+
+          {error ? <p className="error-text">{error}</p> : null}
+
+          <div className="auth-actions-stack">
+            <button
+              type="button"
+              className="primary-btn"
+              onClick={handleContinueInvitation}
+              disabled={verifying || !tokenHash}
+            >
+              {verifying ? 'Validation...' : 'Continuer l’invitation'}
+            </button>
+
+            <button
+              type="button"
+              className="secondary-outline-btn"
+              onClick={handleBackToLogin}
+            >
+              Retour à la connexion
+            </button>
+          </div>
         </div>
       </section>
     );
@@ -308,10 +344,7 @@ export default function AcceptInvitationPage() {
       <section className="auth-page-shell">
         <div className="auth-card">
           <h1>Invitation entreprise</h1>
-          <p className="error-text">Invitation introuvable.</p>
-          <button type="button" className="primary-btn" onClick={handleBackToLogin}>
-            Retour à la connexion
-          </button>
+          <p>Chargement de l’invitation...</p>
         </div>
       </section>
     );
@@ -322,8 +355,7 @@ export default function AcceptInvitationPage() {
       <section className="auth-page-shell">
         <div className="auth-card">
           <h1>Invitation expirée</h1>
-          <p>Cette invitation pour <strong>cette entreprise</strong> a expiré.</p>
-          <p>Demandez une nouvelle invitation à l’administrateur.</p>
+          <p>Cette invitation a expiré.</p>
           <button type="button" className="primary-btn" onClick={handleBackToLogin}>
             Retour à la connexion
           </button>
@@ -376,78 +408,48 @@ export default function AcceptInvitationPage() {
           </div>
         </div>
 
-        {!session?.user ? (
-          <div className="auth-info-box">
-            <p>
-              Cliquez d’abord sur le bouton ci-dessous pour valider l’invitation,
-              puis définissez votre mot de passe.
-            </p>
-
-            {error ? <p className="error-text">{error}</p> : null}
-
-            <div className="auth-actions-stack">
-              <button
-                type="button"
-                className="primary-btn"
-                onClick={handleContinueInvitation}
-                disabled={verifying || !tokenHash}
-              >
-                {verifying ? 'Validation...' : 'Continuer l’invitation'}
-              </button>
-
-              <button
-                type="button"
-                className="secondary-outline-btn"
-                onClick={handleBackToLogin}
-              >
-                Retour à la connexion
-              </button>
-            </div>
+        <form className="auth-form-stack" onSubmit={handleActivateAccount}>
+          <div className="form-group">
+            <label>Mot de passe</label>
+            <input
+              type="password"
+              name="password"
+              placeholder="Choisissez un mot de passe"
+              value={form.password}
+              onChange={handleChange}
+              required
+            />
           </div>
-        ) : (
-          <form className="auth-form-stack" onSubmit={handleActivateAccount}>
-            <div className="form-group">
-              <label>Mot de passe</label>
-              <input
-                type="password"
-                name="password"
-                placeholder="Choisissez un mot de passe"
-                value={form.password}
-                onChange={handleChange}
-                required
-              />
-            </div>
 
-            <div className="form-group">
-              <label>Confirmer le mot de passe</label>
-              <input
-                type="password"
-                name="confirmPassword"
-                placeholder="Confirmez le mot de passe"
-                value={form.confirmPassword}
-                onChange={handleChange}
-                required
-              />
-            </div>
+          <div className="form-group">
+            <label>Confirmer le mot de passe</label>
+            <input
+              type="password"
+              name="confirmPassword"
+              placeholder="Confirmez le mot de passe"
+              value={form.confirmPassword}
+              onChange={handleChange}
+              required
+            />
+          </div>
 
-            {error ? <p className="error-text">{error}</p> : null}
-            {successMsg ? <p className="success-text">{successMsg}</p> : null}
+          {error ? <p className="error-text">{error}</p> : null}
+          {successMsg ? <p className="success-text">{successMsg}</p> : null}
 
-            <div className="auth-actions-stack">
-              <button className="primary-btn" type="submit" disabled={submitting}>
-                {submitting ? 'Activation...' : 'Activer mon compte'}
-              </button>
+          <div className="auth-actions-stack">
+            <button className="primary-btn" type="submit" disabled={submitting}>
+              {submitting ? 'Activation...' : 'Activer mon compte'}
+            </button>
 
-              <button
-                type="button"
-                className="secondary-outline-btn"
-                onClick={handleBackToLogin}
-              >
-                Retour
-              </button>
-            </div>
-          </form>
-        )}
+            <button
+              type="button"
+              className="secondary-outline-btn"
+              onClick={handleBackToLogin}
+            >
+              Retour
+            </button>
+          </div>
+        </form>
       </div>
     </section>
   );
