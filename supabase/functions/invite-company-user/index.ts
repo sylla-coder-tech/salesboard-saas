@@ -27,7 +27,7 @@ Deno.serve(async (req) => {
       return jsonResponse(
         {
           step: 'validation',
-          error: 'Paramètres manquants',
+          error: 'PARAMS_MISSING',
           message: 'Entreprise, email et rôle sont obligatoires.',
         },
         400
@@ -40,6 +40,7 @@ Deno.serve(async (req) => {
     )
 
     const cleanEmail = String(email).trim().toLowerCase()
+    const cleanRole = String(role).trim().toLowerCase()
     const token = crypto.randomUUID()
 
     // 1) Vérifier si email déjà utilisé dans auth
@@ -79,7 +80,7 @@ Deno.serve(async (req) => {
         .select('*')
         .eq('entreprise_id', entreprise_id)
         .eq('email', cleanEmail)
-        .in('statut', ['en_attente'])
+        .eq('statut', 'en_attente')
         .maybeSingle()
 
     if (existingInvitationError) {
@@ -98,7 +99,8 @@ Deno.serve(async (req) => {
         {
           step: 'invitation_already_exists',
           error: 'INVITATION_ALREADY_EXISTS',
-          message: 'Une invitation en attente existe déjà pour cet email.',
+          message:
+            'Une invitation en attente existe déjà pour cet email. Supprimez-la ou attendez son expiration avant d’en envoyer une nouvelle.',
         },
         400
       )
@@ -108,7 +110,7 @@ Deno.serve(async (req) => {
     const invitationPayload = {
       entreprise_id,
       email: cleanEmail,
-      role,
+      role: cleanRole,
       token,
       statut: 'en_attente',
       expire_at: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString(),
@@ -136,14 +138,22 @@ Deno.serve(async (req) => {
       )
     }
 
-    // 4) Tenter d’envoyer l’email
+    // 4) Construire un redirectTo FIABLE avec le token métier
+    const baseRedirect =
+      redirectTo || 'http://localhost:5173/accept-invitation'
+
+    const safeRedirectTo = baseRedirect.includes('?')
+      ? `${baseRedirect}&token=${encodeURIComponent(token)}`
+      : `${baseRedirect}?token=${encodeURIComponent(token)}`
+
+    // 5) Tenter d’envoyer l’email
     const { error: inviteError } = await supabaseAdmin.auth.admin.inviteUserByEmail(
       cleanEmail,
       {
-        redirectTo: redirectTo || 'http://localhost:5173/accept-invitation',
+        redirectTo: safeRedirectTo,
         data: {
           entreprise_id,
-          invited_role: role,
+          invited_role: cleanRole,
           invitation_token: token,
         },
       }
@@ -157,8 +167,11 @@ Deno.serve(async (req) => {
 
       if (lowerMessage.includes('rate limit')) {
         friendlyMessage =
-          "Invitation enregistrée, mais l'email n'a pas pu être envoyé immédiatement à cause de la limite d'envoi. Réessayez plus tard ou configurez un SMTP personnalisé."
-      } else if (lowerMessage.includes('email address') || lowerMessage.includes('invalid')) {
+          "Invitation enregistrée, mais l'email n'a pas pu être envoyé immédiatement à cause de la limite d'envoi. Réessayez plus tard ou utilisez le SMTP personnalisé."
+      } else if (
+        lowerMessage.includes('email address') ||
+        lowerMessage.includes('invalid')
+      ) {
         friendlyMessage = 'Adresse email invalide ou refusée par le système.'
       } else if (lowerMessage.includes('email rate limit exceeded')) {
         friendlyMessage =
@@ -185,7 +198,7 @@ Deno.serve(async (req) => {
       )
     }
 
-    // 5) Marquer l’email comme envoyé
+    // 6) Marquer l’email comme envoyé
     await supabaseAdmin
       .from('invitations_entreprise')
       .update({
@@ -199,6 +212,8 @@ Deno.serve(async (req) => {
       message: 'Invitation envoyée avec succès.',
       invitation_saved: true,
       email_sent: true,
+      token,
+      redirect_to_used: safeRedirectTo,
     })
   } catch (err) {
     return jsonResponse(

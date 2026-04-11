@@ -142,10 +142,10 @@ export default function AdminSaasPage() {
         plan_id: plans[0]?.id ? String(plans[0].id) : '',
       });
 
-      setInviteForm((prev) => ({
-        ...prev,
+      setInviteForm({
+        ...initialInviteForm,
         entreprise_id: createdEntrepriseId,
-      }));
+      });
 
       await loadData();
     } catch (err) {
@@ -162,7 +162,10 @@ export default function AdminSaasPage() {
     setSuccessMsg('');
 
     try {
-      const result = await inviteCompanyOwner(inviteForm);
+      const result = await inviteCompanyOwner({
+        ...inviteForm,
+        role: 'owner',
+      });
 
       if (result?.email_sent === false && result?.invitation_saved === true) {
         setError(
@@ -367,7 +370,9 @@ export default function AdminSaasPage() {
         <div className="section-head">
           <div>
             <h2>Inviter le propriétaire d’une entreprise</h2>
-            <p>Envoyez une invitation email au propriétaire principal d’une entreprise cliente.</p>
+            <p>
+              Envoyez une invitation email au propriétaire principal d’une entreprise cliente.
+            </p>
           </div>
         </div>
 
@@ -402,19 +407,8 @@ export default function AdminSaasPage() {
           </div>
 
           <div className="form-group">
-            <label>Rôle</label>
-            <select
-              name="role"
-              value={inviteForm.role}
-              onChange={handleInviteChange}
-              required
-            >
-              <option value="owner">Owner</option>
-              <option value="admin">Admin</option>
-              <option value="vendeur">Vendeur</option>
-              <option value="comptable">Comptable</option>
-              <option value="lecteur">Lecteur</option>
-            </select>
+            <label>Rôle attribué</label>
+            <input type="text" value="Owner" readOnly />
           </div>
 
           <div className="form-actions">
@@ -465,19 +459,27 @@ export default function AdminSaasPage() {
                         </span>
                       </td>
 
-                      <td>{item.nom_plan || item.plan_nom || item.code_plan || item.plan_abonnement || '-'}</td>
+                      <td>
+                        {item.nom_plan ||
+                          item.plan_nom ||
+                          item.code_plan ||
+                          item.plan_abonnement ||
+                          '-'}
+                      </td>
 
                       <td>{item.statut_abonnement || '-'}</td>
 
                       <td>{formatDate(item.date_fin_abonnement)}</td>
 
                       <td>
-                        {item.nombre_membres ?? 0} / {item.utilisateurs_max ?? item.max_utilisateurs ?? item.max_utilisateur ?? '-'}
+                        {item.nombre_membres ?? 0} /{' '}
+                        {item.utilisateurs_max ??
+                          item.max_utilisateurs ??
+                          item.max_utilisateur ??
+                          '-'}
                       </td>
 
-                      <td>
-                        {item.ia_active ? 'Oui' : 'Non'}
-                      </td>
+                      <td>{item.ia_active ? 'Oui' : 'Non'}</td>
 
                       <td>
                         <div className="table-actions">
