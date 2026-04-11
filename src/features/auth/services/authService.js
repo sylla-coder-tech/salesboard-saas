@@ -33,7 +33,7 @@ export function onAuthStateChange(callback) {
 
 export async function sendPasswordResetEmail(email) {
   const { data, error } = await supabase.auth.resetPasswordForEmail(email, {
-   redirectTo: `${import.meta.env.VITE_APP_URL}/update-password`,
+    redirectTo: `${import.meta.env.VITE_APP_URL}/update-password`,
   });
 
   if (error) throw error;
@@ -50,13 +50,27 @@ export async function updateUserPassword(newPassword) {
 }
 
 export async function getInvitationByToken(token) {
+  const cleanToken = String(token || '').trim();
+
+  if (!cleanToken) {
+    throw new Error("Token d'invitation introuvable.");
+  }
+
   const { data, error } = await supabase
     .from('invitations_entreprise')
-    .select('id, email, role, statut, expire_at, entreprise_id, token')
-    .eq('token', token)
-    .single();
+    .select(
+      'id, email, role, statut, expire_at, entreprise_id, token, created_at'
+    )
+    .eq('token', cleanToken)
+    .order('created_at', { ascending: false })
+    .limit(1)
+    .maybeSingle();
 
   if (error) throw error;
+  if (!data) {
+    throw new Error('Invitation introuvable.');
+  }
+
   return data;
 }
 
