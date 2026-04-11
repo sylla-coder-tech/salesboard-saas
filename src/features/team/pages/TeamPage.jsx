@@ -199,7 +199,6 @@ export default function TeamPage() {
                           disabled={updatingId === member.id}
                           onChange={(e) => handleRoleChange(member, e.target.value)}
                         >
-                          <option value="owner">Owner</option>
                           <option value="admin">Admin</option>
                           <option value="vendeur">Vendeur</option>
                           <option value="comptable">Comptable</option>
