@@ -49,11 +49,7 @@ export const router = createBrowserRouter([
   },
   {
     path: '/accept-invitation',
-    element: (
-      <PublicOnlyRoute>
-        <AcceptInvitationPage />
-      </PublicOnlyRoute>
-    ),
+    element: <AcceptInvitationPage />,
   },
 
   {
