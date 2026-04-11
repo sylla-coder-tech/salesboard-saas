@@ -405,3 +405,12 @@ entrypoint = "./functions/invite-company-user/index.ts"
 # Specifies static files to be bundled with the function. Supports glob patterns.
 # For example, if you want to serve static HTML pages in your function:
 # static_files = [ "./functions/invite-company-user/*.html" ]
+[functions.get-invitation-by-token]
+enabled = true
+verify_jwt = false
+entrypoint = "./functions/get-invitation-by-token/index.ts"
+
+[functions.finalize-invitation-acceptance]
+enabled = true
+verify_jwt = false
+entrypoint = "./functions/finalize-invitation-acceptance/index.ts"
