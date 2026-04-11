@@ -21,11 +21,6 @@ function formatRole(role) {
   return role || '-';
 }
 
-function buildDisplayName(email) {
-  if (!email) return 'Utilisateur';
-  return email.split('@')[0];
-}
-
 export default function AcceptInvitationPage() {
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
@@ -98,10 +93,7 @@ export default function AcceptInvitationPage() {
         setError('');
 
         if (!session?.user) return;
-        if (!invitationToken) {
-          setInvitation(null);
-          return;
-        }
+        if (!invitationToken) return;
 
         const data = await getInvitationByToken(invitationToken);
 
@@ -178,13 +170,7 @@ export default function AcceptInvitationPage() {
     setSuccessMsg('');
 
     try {
-      const {
-        data: { user },
-        error: userError,
-      } = await supabase.auth.getUser();
-
-      if (userError) throw userError;
-      if (!user) {
+      if (!session?.user) {
         throw new Error(
           "Session utilisateur introuvable. Cliquez d’abord sur « Continuer l’invitation »."
         );
@@ -203,7 +189,7 @@ export default function AcceptInvitationPage() {
       }
 
       const invitedEmail = String(invitation.email || '').trim().toLowerCase();
-      const currentEmail = String(user.email || '').trim().toLowerCase();
+      const currentEmail = String(session.user.email || '').trim().toLowerCase();
 
       if (!currentEmail || currentEmail !== invitedEmail) {
         throw new Error("Le compte connecté ne correspond pas à l’email invité.");
@@ -223,48 +209,26 @@ export default function AcceptInvitationPage() {
 
       if (passwordError) throw passwordError;
 
-      const displayName =
-        user.user_metadata?.nom_complet ||
-        user.user_metadata?.full_name ||
-        buildDisplayName(user.email);
+      const {
+        data: finalizeData,
+        error: finalizeError,
+      } = await supabase.functions.invoke('finalize-invitation-acceptance', {
+        body: {
+          invitation_token: invitation.token,
+          user_id: session.user.id,
+          email: session.user.email,
+        },
+      });
 
-      const { error: profileError } = await supabase
-        .from('profils')
-        .upsert(
-          {
-            id: user.id,
-            entreprise_id: invitation.entreprise_id,
-            role: invitation.role,
-            nom_complet: displayName,
-            role_plateforme: null,
-          },
-          { onConflict: 'id' }
+      if (finalizeError) {
+        throw new Error(
+          finalizeData?.message || finalizeError.message || "Erreur lors de l'activation finale."
         );
+      }
 
-      if (profileError) throw profileError;
-
-      const { error: memberError } = await supabase
-        .from('membres_entreprise')
-        .upsert(
-          {
-            entreprise_id: invitation.entreprise_id,
-            user_id: user.id,
-            role: invitation.role,
-            statut: 'actif',
-            date_invitation: invitation.created_at || new Date().toISOString(),
-            date_activation: new Date().toISOString(),
-          },
-          { onConflict: 'entreprise_id,user_id' }
-        );
-
-      if (memberError) throw memberError;
-
-      const { error: invitationUpdateError } = await supabase
-        .from('invitations_entreprise')
-        .update({ statut: 'acceptee' })
-        .eq('id', invitation.id);
-
-      if (invitationUpdateError) throw invitationUpdateError;
+      if (finalizeData?.error) {
+        throw new Error(finalizeData.message || finalizeData.error);
+      }
 
       setSuccessMsg('Compte activé avec succès. Redirection en cours...');
 
