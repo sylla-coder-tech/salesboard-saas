@@ -49,6 +49,7 @@ export default function AcceptInvitationPage() {
   const [error, setError] = useState('');
   const [successMsg, setSuccessMsg] = useState('');
   const [submitting, setSubmitting] = useState(false);
+  const [continuing, setContinuing] = useState(false);
 
   const [form, setForm] = useState({
     password: '',
@@ -164,6 +165,22 @@ export default function AcceptInvitationPage() {
     }
   }
 
+  async function handleContinueInvitation() {
+    try {
+      setContinuing(true);
+      setError('');
+
+      if (!confirmationUrl) {
+        throw new Error("Lien de confirmation introuvable.");
+      }
+
+      window.location.href = confirmationUrl;
+    } catch (err) {
+      setError(err.message || "Impossible de continuer l'invitation.");
+      setContinuing(false);
+    }
+  }
+
   async function handleActivateAccount(e) {
     e.preventDefault();
     setSubmitting(true);
@@ -171,9 +188,15 @@ export default function AcceptInvitationPage() {
     setSuccessMsg('');
 
     try {
-      if (!session?.user) {
+      const {
+        data: { session: freshSession },
+        error: sessionError,
+      } = await supabase.auth.getSession();
+
+      if (sessionError) throw sessionError;
+      if (!freshSession?.user) {
         throw new Error(
-          'Session utilisateur introuvable. Rouvrez le lien reçu par email.'
+          "Session utilisateur introuvable. Cliquez d'abord sur « Continuer l’invitation » depuis le lien reçu par email."
         );
       }
 
@@ -190,11 +213,11 @@ export default function AcceptInvitationPage() {
       }
 
       const invitedEmail = String(invitation.email || '').trim().toLowerCase();
-      const currentEmail = String(session.user.email || '').trim().toLowerCase();
+      const currentEmail = String(freshSession.user.email || '').trim().toLowerCase();
 
       if (!currentEmail || currentEmail !== invitedEmail) {
         throw new Error(
-          'Le compte connecté ne correspond pas à l’email invité.'
+          "Le compte connecté ne correspond pas à l’email invité."
         );
       }
 
@@ -213,15 +236,15 @@ export default function AcceptInvitationPage() {
       if (passwordError) throw passwordError;
 
       const displayName =
-        session.user.user_metadata?.nom_complet ||
-        session.user.user_metadata?.full_name ||
-        buildDisplayName(session.user.email);
+        freshSession.user.user_metadata?.nom_complet ||
+        freshSession.user.user_metadata?.full_name ||
+        buildDisplayName(freshSession.user.email);
 
       const { error: profileError } = await supabase
         .from('profils')
         .upsert(
           {
-            id: session.user.id,
+            id: freshSession.user.id,
             entreprise_id: invitation.entreprise_id,
             role: invitation.role,
             nom_complet: displayName,
@@ -237,11 +260,11 @@ export default function AcceptInvitationPage() {
         .upsert(
           {
             entreprise_id: invitation.entreprise_id,
-            user_id: session.user.id,
+            user_id: freshSession.user.id,
             role: invitation.role,
             statut: 'actif',
-            date_activation: new Date().toISOString(),
             date_invitation: invitation.created_at || new Date().toISOString(),
+            date_activation: new Date().toISOString(),
           },
           { onConflict: 'entreprise_id,user_id' }
         );
@@ -267,40 +290,6 @@ export default function AcceptInvitationPage() {
     } finally {
       setSubmitting(false);
     }
-  }
-
-  if (confirmationUrl && !session?.user) {
-    return (
-      <section className="auth-page-shell">
-        <div className="auth-card">
-          <div className="auth-badge">Invitation</div>
-          <h1>Invitation entreprise</h1>
-          <p>
-            Cliquez sur le bouton ci-dessous pour continuer l’activation de votre compte.
-          </p>
-
-          <div className="auth-actions-stack">
-            <button
-              type="button"
-              className="primary-btn"
-              onClick={() => {
-                window.location.href = confirmationUrl;
-              }}
-            >
-              Continuer l’invitation
-            </button>
-
-            <button
-              type="button"
-              className="secondary-outline-btn"
-              onClick={handleBackToLogin}
-            >
-              Retour à la connexion
-            </button>
-          </div>
-        </div>
-      </section>
-    );
   }
 
   if (hashError || hashErrorCode) {
@@ -442,9 +431,30 @@ export default function AcceptInvitationPage() {
         {!session?.user ? (
           <div className="auth-info-box">
             <p>
-              Ouvrez cette page directement depuis le lien reçu par email afin
-              que la session d’invitation soit reconnue automatiquement.
+              Cliquez d’abord sur le bouton ci-dessous pour que la session
+              d’invitation soit reconnue, puis définissez votre mot de passe.
             </p>
+
+            {error ? <p className="error-text">{error}</p> : null}
+
+            <div className="auth-actions-stack">
+              <button
+                type="button"
+                className="primary-btn"
+                onClick={handleContinueInvitation}
+                disabled={continuing || !confirmationUrl}
+              >
+                {continuing ? 'Ouverture...' : 'Continuer l’invitation'}
+              </button>
+
+              <button
+                type="button"
+                className="secondary-outline-btn"
+                onClick={handleBackToLogin}
+              >
+                Retour à la connexion
+              </button>
+            </div>
           </div>
         ) : (
           <form className="auth-form-stack" onSubmit={handleActivateAccount}>
