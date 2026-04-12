@@ -61,14 +61,22 @@ export default function LoginPage() {
               entreprises, boutiques, magasins et grossistes.
             </p>
 
-            <div className="login-badges">
-              <span className="login-badge">Ventes</span>
-              <span className="login-badge">Stock</span>
-              <span className="login-badge">Crédits</span>
-              <span className="login-badge">Factures</span>
-              <span className="login-badge">Rapports</span>
-              <span className="login-badge">Analyse</span>
-            </div>
+           <div className="login-badges notranslate" translate="no">
+  <div className="login-badges-row">
+    <span className="login-badge">Ventes</span>
+    <span className="login-badge">Stock</span>
+  </div>
+
+  <div className="login-badges-row">
+    <span className="login-badge">Crédits</span>
+    <span className="login-badge">Factures</span>
+  </div>
+
+  <div className="login-badges-row">
+    <span className="login-badge">Rapports</span>
+    <span className="login-badge">Analyse</span>
+  </div>
+</div>
           </div>
 
           <div className="login-hero-bottom">

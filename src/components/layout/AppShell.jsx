@@ -142,7 +142,7 @@ export default function AppShell() {
             )}
           </div>
 
-          <h2>{loading ? 'Chargement...' : entreprise?.nom || 'SalesBoard'}</h2>
+          <h2 className="notranslate" translate="no">{loading ? 'Chargement...' : entreprise?.nom || 'SalesBoard'}</h2>
           <p>
             {loading
               ? 'Chargement du compte...'
@@ -158,7 +158,7 @@ export default function AppShell() {
               key={item.path}
               to={item.path}
               onClick={closeMobileMenu}
-              className={location.pathname === item.path ? 'nav-link active' : 'nav-link'}
+              className={location.pathname === item.path ? 'nav-link active notranslate' : 'nav-link notranslate '}
             >
               {item.label}
             </Link>
@@ -192,7 +192,7 @@ export default function AppShell() {
               )}
             </div>
 
-            <span>{loading ? '...' : entreprise?.nom || 'SalesBoard'}</span>
+            <span className="notranslate" translate="no">{loading ? '...' : entreprise?.nom || 'SalesBoard'}</span>
           </div>
 
           <button className="ghost-topbar-btn" onClick={handleLogout} type="button">
