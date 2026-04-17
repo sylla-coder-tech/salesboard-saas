@@ -4,11 +4,31 @@ import { getMyProfile } from '../../auth/services/profileService';
 export async function getTeamMembers() {
   const profile = await getMyProfile();
 
+  if (!profile?.entreprise_id) {
+    throw new Error("Entreprise introuvable pour l'utilisateur connecté.");
+  }
+
   const { data, error } = await supabase
     .from('membres_entreprise')
-    .select('*')
+    .select(`
+      id,
+      entreprise_id,
+      user_id,
+      role,
+      statut,
+      date_invitation,
+      date_activation,
+      profils:user_id (
+        id,
+        nom_complet
+      ),
+      entreprises:entreprise_id (
+        id,
+        nom
+      )
+    `)
     .eq('entreprise_id', profile.entreprise_id)
-    .order('created_at', { ascending: false });
+    .order('date_activation', { ascending: false });
 
   if (error) throw error;
   return data || [];
@@ -45,7 +65,6 @@ export async function inviteTeamMember(payload) {
   });
 
   if (error) {
-    // On tente de récupérer le vrai message renvoyé par la fonction
     throw new Error(data?.message || error.message || "Erreur lors de l'invitation.");
   }
 

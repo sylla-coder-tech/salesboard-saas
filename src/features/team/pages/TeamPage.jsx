@@ -15,6 +15,15 @@ function formatDate(value) {
   return new Date(value).toLocaleDateString('fr-FR');
 }
 
+function formatRole(role) {
+  if (role === 'owner') return 'Owner';
+  if (role === 'admin') return 'Admin';
+  if (role === 'vendeur') return 'Vendeur';
+  if (role === 'comptable') return 'Comptable';
+  if (role === 'lecteur') return 'Lecteur';
+  return role || '-';
+}
+
 export default function TeamPage() {
   const [members, setMembers] = useState([]);
   const [form, setForm] = useState(initialForm);
@@ -163,7 +172,7 @@ export default function TeamPage() {
         <div className="section-head">
           <div>
             <h2>Membres de l’entreprise</h2>
-            <p>Liste des utilisateurs internes et de leurs rôles.</p>
+            <p>Liste des utilisateurs internes, de leurs rôles et de leur entreprise.</p>
           </div>
         </div>
 
@@ -176,7 +185,8 @@ export default function TeamPage() {
             <table className="data-table">
               <thead>
                 <tr>
-                  <th>User ID</th>
+                  <th>Membre</th>
+                  <th>Entreprise</th>
                   <th>Rôle</th>
                   <th>Statut</th>
                   <th>Invitation</th>
@@ -187,11 +197,22 @@ export default function TeamPage() {
               <tbody>
                 {members.map((member) => (
                   <tr key={member.id}>
-                    <td style={{ wordBreak: 'break-all' }}>{member.user_id}</td>
-                    <td>{member.role}</td>
-                    <td>{member.statut}</td>
+                    <td>
+                      <strong>
+                        {member.profils?.nom_complet || 'Utilisateur sans nom'}
+                      </strong>
+                    </td>
+
+                    <td>{member.entreprises?.nom || 'Entreprise inconnue'}</td>
+
+                    <td>{formatRole(member.role)}</td>
+
+                    <td>{member.statut || '-'}</td>
+
                     <td>{formatDate(member.date_invitation)}</td>
+
                     <td>{formatDate(member.date_activation)}</td>
+
                     <td>
                       <div className="table-actions">
                         <select
