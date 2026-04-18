@@ -112,6 +112,7 @@ export default function VentesPage() {
   const [deleteModalOpen, setDeleteModalOpen] = useState(false);
   const [venteToDelete, setVenteToDelete] = useState(null);
   const [expandedSaleId, setExpandedSaleId] = useState(null);
+  const [selectedProduitStatsId, setSelectedProduitStatsId] = useState('');
 
   async function loadData() {
     try {
@@ -247,6 +248,70 @@ export default function VentesPage() {
     () => totalArticles + fraisLivraison,
     [totalArticles, fraisLivraison]
   );
+
+  const produitStats = useMemo(() => {
+    if (!selectedProduitStatsId) return null;
+
+    const produit = produits.find(
+      (item) => String(item.id) === String(selectedProduitStatsId)
+    );
+
+    if (!produit) return null;
+
+    let nombreVentes = 0;
+    let quantiteVendue = 0;
+    let totalArticlesProduit = 0;
+    let totalFactureProduit = 0;
+    let totalLivraisonProduit = 0;
+    let beneficeTotalProduit = 0;
+
+    ventes.forEach((vente) => {
+      const lignesProduit = (vente.lignes || []).filter(
+        (ligne) => String(ligne.produit_id) === String(selectedProduitStatsId)
+      );
+
+      if (lignesProduit.length > 0) {
+        nombreVentes += 1;
+
+        const totalSousProduit = lignesProduit.reduce(
+          (sum, ligne) => sum + toNumber(ligne.sous_total),
+          0
+        );
+
+        const totalBeneficeProduit = lignesProduit.reduce(
+          (sum, ligne) => sum + toNumber(ligne.benefice_ligne),
+          0
+        );
+
+        const quantiteProduit = lignesProduit.reduce(
+          (sum, ligne) => sum + toNumber(ligne.quantite),
+          0
+        );
+
+        const fraisPartProduit =
+          toNumber(vente.total_articles) > 0
+            ? (toNumber(vente.fraisLivraison) * totalSousProduit) /
+              toNumber(vente.total_articles)
+            : 0;
+
+        quantiteVendue += quantiteProduit;
+        totalArticlesProduit += totalSousProduit;
+        totalFactureProduit += totalSousProduit + fraisPartProduit;
+        totalLivraisonProduit += fraisPartProduit;
+        beneficeTotalProduit += totalBeneficeProduit - fraisPartProduit;
+      }
+    });
+
+    return {
+      produit,
+      nombreVentes,
+      quantiteVendue,
+      totalArticles: totalArticlesProduit,
+      totalFacture: totalFactureProduit,
+      totalLivraison: totalLivraisonProduit,
+      beneficeTotal: beneficeTotalProduit,
+    };
+  }, [selectedProduitStatsId, produits, ventes]);
 
   function handleEdit(vente) {
     setEditingId(vente.id);
@@ -660,6 +725,103 @@ export default function VentesPage() {
         </form>
       </section>
 
+      <section className="page-card product-stats-card">
+  <div className="product-stats-head">
+    <div>
+      <h3>Statistiques par produit</h3>
+      <p>Sélectionnez un produit pour voir ses performances commerciales.</p>
+    </div>
+  </div>
+
+  <div className="sales-form-grid product-stats-select-wrap">
+    <div className="form-group">
+      <label>Produit</label>
+      <select
+        value={selectedProduitStatsId}
+        onChange={(e) => setSelectedProduitStatsId(e.target.value)}
+      >
+        <option value="">Sélectionner un produit</option>
+        {produits.map((produit) => (
+          <option key={produit.id} value={produit.id}>
+            {produit.nom} ({produit.reference})
+          </option>
+        ))}
+      </select>
+    </div>
+  </div>
+
+  {!selectedProduitStatsId ? (
+    <div className="product-stats-empty">
+      Choisissez un produit pour afficher ses statistiques.
+    </div>
+  ) : !produitStats ? (
+    <div className="product-stats-empty">Aucune statistique disponible.</div>
+  ) : (
+    <div className="product-stats-grid">
+      <article className="product-stat-box product-stat-highlight">
+        <div className="product-stat-label">Produit</div>
+        <div className="product-stat-value">
+          {produitStats.produit?.nom || '-'}
+        </div>
+        <div className="product-stat-meta">
+          Réf : {produitStats.produit?.reference || '-'}
+        </div>
+      </article>
+
+      <article className="product-stat-box">
+        <div className="product-stat-label">Nombre de ventes</div>
+        <div className="product-stat-value">{produitStats.nombreVentes}</div>
+        <div className="product-stat-meta">
+          Nombre de ventes contenant ce produit
+        </div>
+      </article>
+
+      <article className="product-stat-box">
+        <div className="product-stat-label">Quantité vendue</div>
+        <div className="product-stat-value">{produitStats.quantiteVendue}</div>
+        <div className="product-stat-meta">Quantité totale vendue</div>
+      </article>
+
+      <article className="product-stat-box">
+        <div className="product-stat-label">Montant articles</div>
+        <div className="product-stat-value">
+          {formatGNF(produitStats.totalArticles)}
+        </div>
+        <div className="product-stat-meta">
+          Total des articles vendus pour ce produit
+        </div>
+      </article>
+
+      <article className="product-stat-box">
+        <div className="product-stat-label">Livraison imputée</div>
+        <div className="product-stat-value">
+          {formatGNF(produitStats.totalLivraison)}
+        </div>
+        <div className="product-stat-meta">
+          Part estimée des frais de livraison
+        </div>
+      </article>
+
+      <article className="product-stat-box">
+        <div className="product-stat-label">Total facturé</div>
+        <div className="product-stat-value">
+          {formatGNF(produitStats.totalFacture)}
+        </div>
+        <div className="product-stat-meta">Articles + part de livraison</div>
+      </article>
+
+      <article className="product-stat-box">
+        <div className="product-stat-label">Bénéfice estimé</div>
+        <div className="product-stat-value">
+          {formatGNF(produitStats.beneficeTotal)}
+        </div>
+        <div className="product-stat-meta">
+          Calcul basé sur les ventes enregistrées
+        </div>
+      </article>
+    </div>
+  )}
+</section>
       <section className="page-card">
         <div className="section-head">
           <div>

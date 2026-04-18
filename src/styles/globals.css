@@ -5095,3 +5095,134 @@ img {
 .notranslate{
   translate:no;
 }
+.product-stats-card {
+  border: 1px solid #e5e7eb;
+  border-radius: 20px;
+  padding: 20px;
+  background: #ffffff;
+}
+
+.product-stats-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  margin-bottom: 18px;
+}
+
+.product-stats-head h3 {
+  margin: 0;
+  font-size: 20px;
+  line-height: 1.2;
+}
+
+.product-stats-head p {
+  margin: 6px 0 0;
+  color: #667085;
+  line-height: 1.5;
+}
+
+.product-stats-select-wrap {
+  max-width: 420px;
+}
+
+.product-stats-grid {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 16px;
+  margin-top: 18px;
+}
+
+.product-stat-box {
+  border: 1px solid #eaecf0;
+  border-radius: 18px;
+  padding: 16px;
+  background: linear-gradient(180deg, #ffffff 0%, #f8fafc 100%);
+}
+
+.product-stat-label {
+  font-size: 13px;
+  color: #667085;
+  margin-bottom: 10px;
+  line-height: 1.4;
+}
+
+.product-stat-value {
+  font-size: 24px;
+  font-weight: 700;
+  line-height: 1.2;
+  color: #101828;
+  word-break: break-word;
+}
+
+.product-stat-meta {
+  margin-top: 8px;
+  font-size: 12px;
+  color: #98a2b3;
+  line-height: 1.4;
+}
+
+.product-stat-highlight {
+  border-color: #dbeafe;
+  background: linear-gradient(180deg, #eff6ff 0%, #f8fbff 100%);
+}
+
+.product-stats-empty {
+  margin-top: 14px;
+  padding: 14px 16px;
+  border-radius: 14px;
+  background: #f8fafc;
+  color: #475467;
+  border: 1px dashed #d0d5dd;
+}
+
+@media (max-width: 1024px) {
+  .product-stats-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
+@media (max-width: 768px) {
+  .product-stats-card {
+    padding: 16px;
+    border-radius: 18px;
+  }
+
+  .product-stats-head {
+    flex-direction: column;
+    align-items: flex-start;
+    margin-bottom: 14px;
+  }
+
+  .product-stats-head h3 {
+    font-size: 18px;
+  }
+
+  .product-stats-select-wrap {
+    width: 100%;
+    max-width: 100%;
+  }
+
+  .product-stats-grid {
+    grid-template-columns: 1fr;
+    gap: 12px;
+    margin-top: 16px;
+  }
+
+  .product-stat-box {
+    padding: 14px;
+    border-radius: 16px;
+  }
+
+  .product-stat-value {
+    font-size: 20px;
+  }
+
+  .product-stat-label {
+    font-size: 12px;
+  }
+
+  .product-stat-meta {
+    font-size: 11px;
+  }
+}
