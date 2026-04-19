@@ -57,7 +57,7 @@ export default function DashboardPage() {
           <div className="kpi-label">Caisse disponible</div>
           <div className="kpi-value">{formatGNF(bilan?.caisse_disponible)}</div>
           <div className="kpi-meta">
-            Ventes encaissées + remboursements - dépenses - livraison
+            Montants des articles vendus  + remboursements - dépenses - livraison
           </div>
         </article>
 
@@ -144,8 +144,8 @@ export default function DashboardPage() {
             </div>
 
             <div className="dashboard-insight-note">
-              La caisse disponible correspond aux ventes encaissées, augmentées des remboursements
-              reçus, puis diminuées des dépenses et des frais de livraison. L’argent à récupérer
+               La caisse disponible correspond au montant des articles vendus, augmenté des remboursements
+              reçus, puis diminué des dépenses et des frais de livraison. L’argent à récupérer
               correspond aux crédits clients non encore soldés.
             </div>
           </div>
