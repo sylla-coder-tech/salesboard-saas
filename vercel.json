@@ -11,10 +11,5 @@
       "source": "/(.*)",
       "destination": "/index.html"
     }
-  ],
-  "functions": {
-    "api/og-boutique.js": {
-      "runtime": "edge"
-    }
-  }
+  ]
 }
