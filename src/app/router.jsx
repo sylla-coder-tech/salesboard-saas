@@ -16,7 +16,6 @@ import StockPage from '../features/produits/pages/StockPage';
 import AdminSaasPage from '../features/admin/pages/AdminSaasPage';
 import AdminInvitationsPage from '../features/admin/pages/AdminInvitationsPage';
 import TeamPage from '../features/team/pages/TeamPage';
-import AiChatPage from '../features/ai/pages/AiChatPage';
 import BoutiquePage from '../features/boutique/pages/BoutiquePage';
 import SuiviCommandePage from '../features/boutique/pages/SuiviCommandePage';
 import CommandesPage from '../features/boutique/pages/CommandesPage';
@@ -183,20 +182,6 @@ export const router = createBrowserRouter([
           <RoleRoute allowedRoles={['owner', 'admin']}>
             <SettingsPage />
           </RoleRoute>
-        ),
-      },
-      {
-        path: 'assistant-ia',
-        element: (
-          <FeatureRoute
-            check={(entreprise) => Boolean(entreprise?.ia_active)}
-            title="Assistant IA indisponible"
-            message="Votre plan actuel ne permet pas d'utiliser l'assistant IA. Veuillez passer à une offre supérieure."
-          >
-            <RoleRoute allowedRoles={['owner', 'admin', 'vendeur', 'comptable', 'lecteur']}>
-              <AiChatPage />
-            </RoleRoute>
-          </FeatureRoute>
         ),
       },
       {

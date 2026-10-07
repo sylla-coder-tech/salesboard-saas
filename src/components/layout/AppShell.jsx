@@ -73,12 +73,6 @@ const menuItems = [
     isEnabled: () => true,
   },
   {
-    label: 'Assistant IA',
-    path: '/assistant-ia',
-    roles: ['owner', 'admin', 'vendeur', 'comptable', 'lecteur'],
-    isEnabled: (entreprise) => Boolean(entreprise?.ia_active),
-  },
-  {
     label: 'Ma Boutique',
     path: '/ma-boutique',
     roles: ['owner', 'admin'],
